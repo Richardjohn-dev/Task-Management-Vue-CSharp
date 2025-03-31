@@ -1,0 +1,6 @@
+@HangfireParallelTasks_HostAddress = http://localhost:5096
+
+GET {{HangfireParallelTasks_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
