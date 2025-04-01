@@ -6,7 +6,7 @@ using HangfireParallelTasks.Domain.Primitives;
 public record EnqueueTaskRequest(DomainEntityDetails Details);
 
 
-public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, Result<EnqueueDomainTaskResponse>>
+public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, EndpointResponse<TaskEnqueuedResponse>>
 {
     private readonly DomainTaskQueue _queue;
 

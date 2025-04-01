@@ -19,7 +19,7 @@ public interface IResult
 
     IEnumerable<string> Errors { get; }
 }
-public record Result<T> : IResult
+public record EndpointResponse<T> : IResult
 {
     public T Value { get; }
     public ResultStatus Status { get; protected set; }
@@ -27,22 +27,22 @@ public record Result<T> : IResult
     public IEnumerable<string> Errors { get; protected set; } = new List<string>();
     public bool IsSuccess => Status == ResultStatus.Ok;
 
-    protected Result(ResultStatus status)
+    protected EndpointResponse(ResultStatus status)
     {
         Status = status;
     }
 
-    protected Result()
+    protected EndpointResponse()
     {
 
     }
 
 
-    public Result(T value) => Value = value;
+    public EndpointResponse(T value) => Value = value;
 
-    public static implicit operator Result<T>(Result result)
+    public static implicit operator EndpointResponse<T>(Result result)
     {
-        return new Result<T>(default(T))
+        return new EndpointResponse<T>(default(T))
         {
             Status = result.Status,
             Errors = result.Errors,
@@ -50,19 +50,19 @@ public record Result<T> : IResult
         };
     }
 
-    public static implicit operator T(Result<T> result)
+    public static implicit operator T(EndpointResponse<T> result)
     {
         return result.Value;
     }
 
-    public static implicit operator Result<T>(T value)
+    public static implicit operator EndpointResponse<T>(T value)
     {
-        return new Result<T>(value);
+        return new EndpointResponse<T>(value);
     }
 
-    public static Result<T> Success(T value)
+    public static EndpointResponse<T> Success(T value)
     {
-        return new Result<T>(value);
+        return new EndpointResponse<T>(value);
     }
 
     public static Result SuccessWithMessage(string message)
@@ -73,18 +73,18 @@ public record Result<T> : IResult
         };
     }
 
-    public static Result<T> Error(params string[] errorMessages)
+    public static EndpointResponse<T> Error(params string[] errorMessages)
     {
-        return new Result<T>(ResultStatus.Error)
+        return new EndpointResponse<T>(ResultStatus.Error)
         {
             Errors = errorMessages
         };
     }
 
 
-    public static Result<T> NotFound(params string[] errorMessages)
+    public static EndpointResponse<T> NotFound(params string[] errorMessages)
     {
-        return new Result<T>(ResultStatus.NotFound)
+        return new EndpointResponse<T>(ResultStatus.NotFound)
         {
             Errors = errorMessages
         };
@@ -93,7 +93,7 @@ public record Result<T> : IResult
 }
 
 
-public record Result : Result<Result>
+public record Result : EndpointResponse<Result>
 {
     public Result()
     {
@@ -107,9 +107,9 @@ public record Result : Result<Result>
     {
         return new Result();
     }
-    public static Result<T> Success<T>(T value)
+    public static EndpointResponse<T> Success<T>(T value)
     {
-        return new Result<T>(value);
+        return new EndpointResponse<T>(value);
     }
     protected internal Result(ResultStatus status)
        : base(status)

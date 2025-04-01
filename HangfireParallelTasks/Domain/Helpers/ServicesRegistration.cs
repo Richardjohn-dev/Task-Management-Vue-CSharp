@@ -50,4 +50,19 @@ public static class ServicesRegistration
         return services;
 
     }
+
+    public static void ConfigureCors(this IServiceCollection services, IConfiguration configuration)
+    {
+        var allowedOrigins = configuration.GetSection("AppSettings:CORS-Settings:Allow-Origins").Get<string[]>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("VueSPA",
+               builder =>
+               builder.WithOrigins(allowedOrigins)
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials());
+        });
+    }
 }

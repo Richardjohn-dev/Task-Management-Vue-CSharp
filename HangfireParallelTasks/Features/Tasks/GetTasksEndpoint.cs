@@ -3,7 +3,7 @@ using Domain.Tasks.Enqueue;
 using FastEndpoints;
 using HangfireParallelTasks.Domain.Primitives;
 
-public class GetTasksEndpoint : EndpointWithoutRequest<Result<DomainEntityDetails[]>>
+public class GetTasksEndpoint : EndpointWithoutRequest<EndpointResponse<DomainEntityDetails[]>>
 {
     public override void Configure()
     {

@@ -42,7 +42,7 @@ public class DomainTaskProcessor
         }
     }
 
-    private void NotifyTaskResults(Result<DomainTaskResultUI> result, DomainTaskInfo taskInfo)
+    private void NotifyTaskResults(EndpointResponse<DomainTaskResultUI> result, DomainTaskInfo taskInfo)
     {
         if (IsFailed(result))
             NotifyFailedTask(taskInfo, result.Errors.ToArray());
@@ -61,7 +61,7 @@ public class DomainTaskProcessor
         Console.WriteLine($"******> PROCESSING: QUEUE#{queueName.Number} Task Started ({taskInfo.Details.GroupId.Value})");
         Console.WriteLine();
     }
-    private async Task<Result<DomainTaskResultUI>> DoWork(DomainTaskInfo taskInfo)
+    private async Task<EndpointResponse<DomainTaskResultUI>> DoWork(DomainTaskInfo taskInfo)
     {
         _queueService.NotifySynchronizationTaskStarted(taskInfo); // notify frontend
 
@@ -82,7 +82,7 @@ public class DomainTaskProcessor
     private static bool TriggeredFromUI(DomainTaskInfo taskInfo) => taskInfo.Source == TaskTriggeredBy.SPA;
 
 
-    private static bool IsFailed(Result<DomainTaskResultUI> result)
+    private static bool IsFailed(EndpointResponse<DomainTaskResultUI> result)
         => (result.IsSuccess == false || result.Value == null);
 
 }

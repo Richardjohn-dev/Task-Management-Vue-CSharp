@@ -1,13 +1,13 @@
 ﻿
 using Domain.Tasks.Enqueue;
 
-public class EnqueueDomainTaskResponse()
+public class TaskEnqueuedResponse()
 {
     public string Key { get; protected set; }
     public string Message { get; set; }
-    public static EnqueueDomainTaskResponse Enqueued(DomainTaskInfo identifier)
+    public static TaskEnqueuedResponse Enqueued(DomainTaskInfo identifier)
     {
-        return new EnqueueDomainTaskResponse
+        return new TaskEnqueuedResponse
         {
             Key = identifier.CompositeKey,
             Message = "Mapping Task enqueued"

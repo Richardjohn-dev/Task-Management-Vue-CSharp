@@ -51,7 +51,7 @@ public class DomainTaskQueue
 
 
 
-    internal async Task<Result<EnqueueDomainTaskResponse>> TryEnqueueDomainTask(DomainTaskInfo task, bool NotifyEnqueued = true)
+    internal async Task<EndpointResponse<TaskEnqueuedResponse>> TryEnqueueDomainTask(DomainTaskInfo task, bool NotifyEnqueued = true)
     {
         if (!await _taskQueueAccess.WaitAsync(TimeSpan.FromSeconds(10)))
             return Result.Error("Failed getting a ticket... must be busy.");
@@ -84,7 +84,7 @@ public class DomainTaskQueue
         }
     }
 
-    private EnqueueDomainTaskResponse EnqueueOrCacheTask(DomainTaskInfo task, bool NotifyEnqueued = true)
+    private TaskEnqueuedResponse EnqueueOrCacheTask(DomainTaskInfo task, bool NotifyEnqueued = true)
     {
         try
         {
@@ -110,7 +110,7 @@ public class DomainTaskQueue
     }
 
 
-    private EnqueueDomainTaskResponse AddToCurrentlyProcessingOverflow(DomainTaskInfo task)
+    private TaskEnqueuedResponse AddToCurrentlyProcessingOverflow(DomainTaskInfo task)
     {
         var groupId = task.Details.GroupId;
 
@@ -123,10 +123,10 @@ public class DomainTaskQueue
            });
 
 
-        return EnqueueDomainTaskResponse.Enqueued(task);
+        return TaskEnqueuedResponse.Enqueued(task);
     }
 
-    private EnqueueDomainTaskResponse AddToQueuesFullOverflow(DomainTaskInfo task)
+    private TaskEnqueuedResponse AddToQueuesFullOverflow(DomainTaskInfo task)
     {
         var groupId = task.Details.GroupId;
 
@@ -138,11 +138,11 @@ public class DomainTaskQueue
                return queue;
            });
 
-        return EnqueueDomainTaskResponse.Enqueued(task);
+        return TaskEnqueuedResponse.Enqueued(task);
 
     }
 
-    private Result<EnqueueDomainTaskResponse> TryEnqueueNewSynchronizationTask(DomainTaskQueueName queue, DomainTaskInfo task)
+    private EndpointResponse<TaskEnqueuedResponse> TryEnqueueNewSynchronizationTask(DomainTaskQueueName queue, DomainTaskInfo task)
     {
         try
         {
@@ -154,7 +154,7 @@ public class DomainTaskQueue
             LogEnqueued(queue, task);
             NotifySynchronizationMappingTaskEnqueued(task);
 
-            return EnqueueDomainTaskResponse.Enqueued(task);
+            return TaskEnqueuedResponse.Enqueued(task);
         }
         catch (Exception e)
         {
@@ -281,7 +281,7 @@ public class DomainTaskQueue
     {
         return _currentlyProcessingGroups.ContainsKey(group);
     }
-    private Result<DomainTaskInfo> TryGetNextTaskForGroup(SharedGroupIdentifier groupId)
+    private EndpointResponse<DomainTaskInfo> TryGetNextTaskForGroup(SharedGroupIdentifier groupId)
     {
         if (!_currentlyProcessingGroupOverflow.ContainsKey(groupId))
             return Result.Error();
@@ -296,7 +296,7 @@ public class DomainTaskQueue
 
 
 
-    private Result<DomainTaskQueueName> GetNextAvailableQueue()
+    private EndpointResponse<DomainTaskQueueName> GetNextAvailableQueue()
     {
         // just return queue name
         var availbleQueue = _domainTaskQueues.Where(x => x.Value == QueueStatus.Empty)
@@ -377,10 +377,10 @@ public class DomainTaskQueue
         return;
     }
 
-    private EnqueueDomainTaskResponse[] AddRemainingTasksToCurrentlyProcessingOverflow(SharedGroupIdentifier groupId, Queue<DomainTaskInfo> taskQueue)
+    private TaskEnqueuedResponse[] AddRemainingTasksToCurrentlyProcessingOverflow(SharedGroupIdentifier groupId, Queue<DomainTaskInfo> taskQueue)
     {
         if (taskQueue.Count == 0)
-            return Array.Empty<EnqueueDomainTaskResponse>();
+            return Array.Empty<TaskEnqueuedResponse>();
 
         _currentlyProcessingGroupOverflow.AddOrUpdate(groupId,
             _ => new Queue<DomainTaskInfo>(taskQueue),
@@ -393,7 +393,7 @@ public class DomainTaskQueue
                 return existingQueue;
             });
 
-        return taskQueue.Select(EnqueueDomainTaskResponse.Enqueued).ToArray();
+        return taskQueue.Select(TaskEnqueuedResponse.Enqueued).ToArray();
 
     }
 

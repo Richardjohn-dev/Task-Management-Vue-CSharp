@@ -14,7 +14,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerGen();
 }
 
+
 app.UseFastEndpoints();
+
+app.UseCors("VueSPA");
+
 
 app.UseHttpsRedirection();
 
