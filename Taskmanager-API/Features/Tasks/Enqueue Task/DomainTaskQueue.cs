@@ -1,6 +1,5 @@
 ﻿using Domain.Tasks.Synchronization;
 using Hangfire;
-using HangfireParallelTasks.Domain.Primitives;
 using HangfireParallelTasks.Features.Tasks.Constants;
 using System.Collections.Concurrent;
 
@@ -51,7 +50,7 @@ public class DomainTaskQueue
 
 
 
-    internal async Task<EndpointResponse<TaskEnqueuedResponse>> TryEnqueueDomainTask(DomainTaskInfo task, bool NotifyEnqueued = true)
+    internal async Task<Result<TaskEnqueuedResponse>> TryEnqueueDomainTask(DomainTaskInfo task, bool NotifyEnqueued = true)
     {
         if (!await _taskQueueAccess.WaitAsync(TimeSpan.FromSeconds(10)))
             return Result.Error("Failed getting a ticket... must be busy.");
@@ -95,12 +94,12 @@ public class DomainTaskQueue
 
             var getNextAvailableQueue = GetNextAvailableQueue();
 
-            if (!getNextAvailableQueue.Success)
+            if (!getNextAvailableQueue.IsSuccess)
             {
                 return AddToQueuesFullOverflow(task);
             }
 
-            return TryEnqueueNewSynchronizationTask(getNextAvailableQueue.Payload, task);
+            return TryEnqueueNewSynchronizationTask(getNextAvailableQueue.Value, task);
         }
         finally
         {
@@ -142,7 +141,7 @@ public class DomainTaskQueue
 
     }
 
-    private EndpointResponse<TaskEnqueuedResponse> TryEnqueueNewSynchronizationTask(DomainTaskQueueName queue, DomainTaskInfo task)
+    private Result<TaskEnqueuedResponse> TryEnqueueNewSynchronizationTask(DomainTaskQueueName queue, DomainTaskInfo task)
     {
         try
         {
@@ -188,9 +187,9 @@ public class DomainTaskQueue
 
             var getNextTaskResult = TryGetNextTaskForGroup(groupId);
 
-            if (getNextTaskResult.Success)
+            if (getNextTaskResult.IsSuccess)
             {
-                TryEnqueueNewSynchronizationTask(queue, getNextTaskResult.Payload);
+                TryEnqueueNewSynchronizationTask(queue, getNextTaskResult.Value);
             }
             else
             {
@@ -281,7 +280,7 @@ public class DomainTaskQueue
     {
         return _currentlyProcessingGroups.ContainsKey(group);
     }
-    private EndpointResponse<DomainTaskInfo> TryGetNextTaskForGroup(SharedGroupIdentifier groupId)
+    private Result<DomainTaskInfo> TryGetNextTaskForGroup(SharedGroupIdentifier groupId)
     {
         if (!_currentlyProcessingGroupOverflow.ContainsKey(groupId))
             return Result.Error();
@@ -296,7 +295,7 @@ public class DomainTaskQueue
 
 
 
-    private EndpointResponse<DomainTaskQueueName> GetNextAvailableQueue()
+    private Result<DomainTaskQueueName> GetNextAvailableQueue()
     {
         // just return queue name
         var availbleQueue = _domainTaskQueues.Where(x => x.Value == QueueStatus.Empty)
@@ -333,10 +332,10 @@ public class DomainTaskQueue
                 {
 
                     var getQueueResult = GetNextAvailableQueue();
-                    if (getQueueResult.Success)
+                    if (getQueueResult.IsSuccess)
                     {
                         var firstTask = taskQueue.Dequeue();
-                        _ = TryEnqueueNewSynchronizationTask(getQueueResult.Payload, firstTask);
+                        _ = TryEnqueueNewSynchronizationTask(getQueueResult.Value, firstTask);
                         _ = AddRemainingTasksToCurrentlyProcessingOverflow(groupId, taskQueue);
 
                     }

@@ -3,7 +3,7 @@ using Domain.Tasks.Enqueue;
 using FastEndpoints;
 using HangfireParallelTasks.Domain.Primitives;
 
-public class GetTasksEndpoint : EndpointWithoutRequest<EndpointResponse<DomainEntityDetails[]>>
+public class GetTasksEndpoint : EndpointWithoutRequest<ApiResponse<DomainEntityDetails[]>>
 {
     public override void Configure()
     {
@@ -15,7 +15,7 @@ public class GetTasksEndpoint : EndpointWithoutRequest<EndpointResponse<DomainEn
     public override async Task HandleAsync(CancellationToken ct)
     {
         var data = SampleData.GetAll;
-        await SendAsync(EndpointResponse<DomainEntityDetails[]>.Ok(data));
+        await SendAsync(ApiResponse<DomainEntityDetails[]>.Success(data));
     }
 }
 

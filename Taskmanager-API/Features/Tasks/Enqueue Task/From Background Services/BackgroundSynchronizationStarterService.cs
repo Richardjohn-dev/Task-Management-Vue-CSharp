@@ -12,7 +12,7 @@ public class EnqueueDomainTasksBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RunBackgroundService(stoppingToken);
+        //await RunBackgroundService(stoppingToken);
     }
 
     private async Task RunBackgroundService(CancellationToken stoppingToken)

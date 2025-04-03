@@ -1,6 +1,5 @@
 ﻿using Domain.Tasks.Enqueue;
 using Hangfire;
-using HangfireParallelTasks.Domain.Primitives;
 using MediatR;
 using System.Diagnostics;
 
@@ -42,7 +41,7 @@ public class DomainTaskProcessor
         }
     }
 
-    private void NotifyTaskResults(EndpointResponse<DomainTaskResultUI> result, DomainTaskInfo taskInfo)
+    private void NotifyTaskResults(Result<DomainTaskResultUI> result, DomainTaskInfo taskInfo)
     {
         if (IsFailed(result))
             NotifyFailedTask(taskInfo, result.Errors.ToArray());
@@ -61,7 +60,7 @@ public class DomainTaskProcessor
         Console.WriteLine($"******> PROCESSING: QUEUE#{queueName.Number} Task Started ({taskInfo.Details.GroupId.Value})");
         Console.WriteLine();
     }
-    private async Task<EndpointResponse<DomainTaskResultUI>> DoWork(DomainTaskInfo taskInfo)
+    private async Task<Result<DomainTaskResultUI>> DoWork(DomainTaskInfo taskInfo)
     {
         _queueService.NotifySynchronizationTaskStarted(taskInfo); // notify frontend
 
@@ -73,7 +72,7 @@ public class DomainTaskProcessor
 
         taskTimer.Stop();
 
-        return taskResult.Success ? new DomainTaskResultUI(taskResult.Payload)
+        return taskResult.IsSuccess ? new DomainTaskResultUI(taskResult.Value)
                    : Result.Error(taskResult.Errors.ToArray());
 
     }
@@ -82,8 +81,8 @@ public class DomainTaskProcessor
     private static bool TriggeredFromUI(DomainTaskInfo taskInfo) => taskInfo.Source == TaskTriggeredBy.SPA;
 
 
-    private static bool IsFailed(EndpointResponse<DomainTaskResultUI> result)
-        => (result.Success == false || result.Payload == null);
+    private static bool IsFailed(Result<DomainTaskResultUI> result)
+        => (result.IsSuccess == false || result.Value == null);
 
 }
 

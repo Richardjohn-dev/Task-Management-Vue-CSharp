@@ -6,7 +6,7 @@ using HangfireParallelTasks.Domain.Primitives;
 public record EnqueueTaskRequest(DomainEntityDetails Details);
 
 
-public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, EndpointResponse<TaskEnqueuedResponse>>
+public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiResponse<TaskEnqueuedResponse>>
 {
     private readonly DomainTaskQueue _queue;
 
@@ -26,14 +26,30 @@ public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, EndpointRe
     {
         if (RequestInvalid(req))
         {
-            await SendAsync(Result.Error("invalid data"));
+            await SendProblemDetails(ct, "invalid entry data");
+            return;
         }
-        else
+
+        var taskToEnqueue = new DomainTaskInfo(req.Details, TaskTriggeredBy.SPA);
+        var enqueueTaskResponse = await _queue.TryEnqueueDomainTask(taskToEnqueue);
+
+        if (!enqueueTaskResponse.IsSuccess)
         {
-            var taskToEnqueue = new DomainTaskInfo(req.Details, TaskTriggeredBy.SPA);
-            var enqueueTaskResponse = await _queue.TryEnqueueDomainTask(taskToEnqueue);
-            await SendAsync(enqueueTaskResponse, cancellation: ct);
+            await SendProblemDetails(ct, enqueueTaskResponse.Errors.ToArray());
+            return;
         }
+        var response = ApiResponse<TaskEnqueuedResponse>.Success(enqueueTaskResponse);
+
+        await SendAsync(response, cancellation: ct);
+    }
+
+    private async Task SendProblemDetails(CancellationToken ct, params string[] errors)
+    {
+        foreach (var error in errors)
+            AddError(error);
+
+        await SendErrorsAsync(statusCode: StatusCodes.Status400BadRequest, cancellation: ct);
+        return;
     }
 
     private static bool RequestInvalid(EnqueueTaskRequest req) => req.Details is null || SampleData.DetailsExist(req.Details) == false;

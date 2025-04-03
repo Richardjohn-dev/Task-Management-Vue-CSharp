@@ -78,7 +78,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted } from 'vue'
-import { useSampleDataStore } from '@/stores/SampleDataStore' // Adjusted casing to fix the error
+import { useSampleDataStore } from '@/stores/dataStore' // Adjusted casing to fix the error
 import { storeToRefs } from 'pinia'
 import type { DomainEntityDetails } from '@/models/types'
 

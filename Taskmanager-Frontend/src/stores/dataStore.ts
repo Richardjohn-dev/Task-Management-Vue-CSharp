@@ -12,7 +12,7 @@ interface SampleDataState {
   enqueueError: string | null
 }
 
-export const useSampleDataStore = defineStore('sampleData', {
+export const useDataStore = defineStore('sampleData', {
   state: (): SampleDataState => ({
     entities: [],
     loading: false,
@@ -23,7 +23,7 @@ export const useSampleDataStore = defineStore('sampleData', {
   }),
 
   getters: {
-    hasEntities: (state) => state.entities,
+    hasEntities: (state) => state.entities.length > 0,
   },
 
   actions: {
