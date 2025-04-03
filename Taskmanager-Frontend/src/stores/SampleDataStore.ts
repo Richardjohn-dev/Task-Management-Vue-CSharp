@@ -1,8 +1,7 @@
 // stores/sampleDataStore.ts
 import { defineStore } from 'pinia'
 import { api } from '@/services/api'
-import type { DomainEntityDetails, TaskEnqueuedResponse, EndPointResponse } from '@/models/types'
-import { ResultStatus } from '@/models/types'
+import type { DomainEntityDetails, TaskEnqueuedResponse } from '@/models/types'
 
 interface SampleDataState {
   entities: DomainEntityDetails[]
@@ -24,7 +23,7 @@ export const useSampleDataStore = defineStore('sampleData', {
   }),
 
   getters: {
-    hasEntities: (state) => state.entities.length > 0,
+    hasEntities: (state) => state.entities,
   },
 
   actions: {
@@ -34,7 +33,7 @@ export const useSampleDataStore = defineStore('sampleData', {
 
       try {
         const response = await api.getSampleData()
-
+        console.log('get api response: ', response)
         if (response.success) {
           this.entities = response.payload
         } else {

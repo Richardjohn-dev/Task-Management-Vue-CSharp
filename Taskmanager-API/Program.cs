@@ -32,6 +32,7 @@ static void RegisterServices(IServiceCollection services, IConfiguration configu
 
     services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
+    services.ConfigureSPACors(configuration);
     services.RegisterTaskManager(configuration);
 
 }

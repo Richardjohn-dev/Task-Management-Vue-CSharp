@@ -73,7 +73,7 @@ public class DomainTaskProcessor
 
         taskTimer.Stop();
 
-        return taskResult.IsSuccess ? new DomainTaskResultUI(taskResult.Value)
+        return taskResult.Success ? new DomainTaskResultUI(taskResult.Payload)
                    : Result.Error(taskResult.Errors.ToArray());
 
     }
@@ -83,7 +83,7 @@ public class DomainTaskProcessor
 
 
     private static bool IsFailed(EndpointResponse<DomainTaskResultUI> result)
-        => (result.IsSuccess == false || result.Value == null);
+        => (result.Success == false || result.Payload == null);
 
 }
 

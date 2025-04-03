@@ -95,12 +95,12 @@ public class DomainTaskQueue
 
             var getNextAvailableQueue = GetNextAvailableQueue();
 
-            if (!getNextAvailableQueue.IsSuccess)
+            if (!getNextAvailableQueue.Success)
             {
                 return AddToQueuesFullOverflow(task);
             }
 
-            return TryEnqueueNewSynchronizationTask(getNextAvailableQueue.Value, task);
+            return TryEnqueueNewSynchronizationTask(getNextAvailableQueue.Payload, task);
         }
         finally
         {
@@ -188,9 +188,9 @@ public class DomainTaskQueue
 
             var getNextTaskResult = TryGetNextTaskForGroup(groupId);
 
-            if (getNextTaskResult.IsSuccess)
+            if (getNextTaskResult.Success)
             {
-                TryEnqueueNewSynchronizationTask(queue, getNextTaskResult.Value);
+                TryEnqueueNewSynchronizationTask(queue, getNextTaskResult.Payload);
             }
             else
             {
@@ -333,10 +333,10 @@ public class DomainTaskQueue
                 {
 
                     var getQueueResult = GetNextAvailableQueue();
-                    if (getQueueResult.IsSuccess)
+                    if (getQueueResult.Success)
                     {
                         var firstTask = taskQueue.Dequeue();
-                        _ = TryEnqueueNewSynchronizationTask(getQueueResult.Value, firstTask);
+                        _ = TryEnqueueNewSynchronizationTask(getQueueResult.Payload, firstTask);
                         _ = AddRemainingTasksToCurrentlyProcessingOverflow(groupId, taskQueue);
 
                     }

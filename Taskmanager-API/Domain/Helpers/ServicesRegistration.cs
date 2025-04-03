@@ -8,7 +8,20 @@ namespace HangfireParallelTasks.Services.Registration;
 
 public static class ServicesRegistration
 {
+    public static void ConfigureSPACors(this IServiceCollection services, IConfiguration configuration)
+    {
+        //var allowedOrigins = configuration.GetSection("AppSettings:CORS-Settings:Allow-Origins").Get<string[]>();
 
+        services.AddCors(options =>
+        {
+            options.AddPolicy("VueSPA",
+               builder =>
+               builder.WithOrigins(["http://localhost:3000", "http://localhost:3001"])
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials());
+        });
+    }
     public static IServiceCollection RegisterTaskManager(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHangfire((sp, config) =>
@@ -19,11 +32,11 @@ public static class ServicesRegistration
 
         });
 
-        var queueCount = configuration.GetValue<int>("Hangfire:ParallelQueueCount", 3); // 
+        var queueCount = configuration.GetValue<int>("Hangfire:ParallelQueueCount", 3);
 
 
         var synchronizationQueueNames = Enumerable.Range(1, queueCount)
-                                    .Select(i => $"synchronization_queue_{i}").ToArray();
+                                    .Select(i => $"parallel_task_queue_{i}").ToArray();
 
 
         List<string> queueNames = new List<string>(synchronizationQueueNames)
@@ -31,12 +44,12 @@ public static class ServicesRegistration
             "another_task_queue", "different_task_queue"
         };
 
+        // you could configure a server per queue, but this is quite resource intensive.
         services.AddHangfireServer(options =>
         {
             options.SchedulePollingInterval = TimeSpan.FromSeconds(15);
             options.Queues = queueNames.ToArray();
-            options.WorkerCount = synchronizationQueueNames.Count();
-
+            options.WorkerCount = queueNames.Count();
         });
 
 
@@ -51,18 +64,5 @@ public static class ServicesRegistration
 
     }
 
-    public static void ConfigureCors(this IServiceCollection services, IConfiguration configuration)
-    {
-        var allowedOrigins = configuration.GetSection("AppSettings:CORS-Settings:Allow-Origins").Get<string[]>();
 
-        services.AddCors(options =>
-        {
-            options.AddPolicy("VueSPA",
-               builder =>
-               builder.WithOrigins(allowedOrigins)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials());
-        });
-    }
 }

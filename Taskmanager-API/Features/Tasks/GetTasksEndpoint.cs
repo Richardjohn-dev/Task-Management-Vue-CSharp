@@ -14,7 +14,8 @@ public class GetTasksEndpoint : EndpointWithoutRequest<EndpointResponse<DomainEn
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        await SendAsync(SampleData.GetAll);
+        var data = SampleData.GetAll;
+        await SendAsync(EndpointResponse<DomainEntityDetails[]>.Ok(data));
     }
 }
 
