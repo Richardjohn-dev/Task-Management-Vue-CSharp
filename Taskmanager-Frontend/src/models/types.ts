@@ -1,20 +1,32 @@
 // models/types.ts
 
-export enum ResultStatus {
-  Ok = 'Ok',
-  Error = 'Error',
-  NotFound = 'NotFound',
-  ValidationError = 'ValidationError',
-  Unauthorized = 'Unauthorized',
+export interface ProblemDetailError {
+  name: string
+  reason: string
 }
 
-export interface EndPointResponse<T> {
-  resultStatus: ResultStatus
-  status: string
-  success: boolean
-  message: string
-  errors: string[]
-  payload: T
+export interface ProblemDetails {
+  type: string
+  title: string
+  status: number
+  instance: string
+  traceId: string
+  errors?: ProblemDetailError[]
+}
+export interface ApiResponse<T> {
+  payload?: T
+  pagination?: Pagination
+}
+
+export interface Pagination {
+  records: number
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+  nextPage: string
+  previousPage: string
+  nextCursor?: string
+  previousCursor?: string
 }
 
 export interface DomainEntityDetails {
@@ -32,8 +44,6 @@ export interface SharedGroupIdentifier {
 }
 
 export interface TaskEnqueuedResponse {
-  // Add properties returned by your API
-  taskId?: string
+  taskId: string
   enqueuedAt?: string
-  // Add other properties as needed
 }

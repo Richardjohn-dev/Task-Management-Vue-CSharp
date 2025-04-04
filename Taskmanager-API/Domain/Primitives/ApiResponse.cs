@@ -1,41 +1,33 @@
 ﻿namespace HangfireParallelTasks.Domain.Primitives;
-
 public class ApiResponse<T>
 {
-    public string Status { get; set; }
-    public T Value { get; set; }
+    public T? Payload { get; set; }
     public Pagination? Pagination { get; private set; }
-    public bool HasPagination => Pagination != null;
-    public static ApiResponse<T> Success(T payload)
-    {
-        return new ApiResponse<T>()
+
+    public static ApiResponse<T> Success(T payload) =>
+        new ApiResponse<T>
         {
-            Value = payload,
-            Status = "success",
+            Payload = payload,
         };
-    }
-    public static ApiResponse<T> PagedResponse(T payload, Pagination pagination)
-    {
-        return new ApiResponse<T>()
+
+    public static ApiResponse<T> PagedResponse(T payload, Pagination pagination) =>
+        new ApiResponse<T>
         {
-            Value = payload,
-            Status = "success",
+            Payload = payload,
             Pagination = pagination
         };
-    }
 }
-
 public class Pagination
 {
-
-    public int Records { get; set; } = 0;
-
-    public int? PageNumber { get; set; }
-
-    public int? PageSize { get; set; }
+    public int Records { get; set; }
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)Records / PageSize) : 0;
 
     public string NextPage { get; set; } = string.Empty;
-
     public string PreviousPage { get; set; } = string.Empty;
 
+    // Optional - advanced support
+    public string? NextCursor { get; set; }
+    public string? PreviousCursor { get; set; }
 }

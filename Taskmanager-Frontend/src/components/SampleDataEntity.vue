@@ -1,5 +1,27 @@
 <template>
   <v-container>
+    <v-card>
+      <v-list v-if="hasEntities">
+        <v-list-item v-for="entity in entities" :key="entity.id.value">
+          <v-card class="mb-2">
+            <v-card-title>{{ entity.id }}</v-card-title>
+            <v-card-subtitle>Group: {{ entity.groupId }}</v-card-subtitle>
+            <v-card-actions>
+              <v-btn
+                size="small"
+                color="primary"
+                @click="enqueueTask(entity)"
+                :loading="enqueuingTask"
+                :disabled="enqueuingTask"
+              >
+                Enqueue Task
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-list-item>
+      </v-list>
+    </v-card>
+
     <v-row>
       <v-col>
         <v-card>
@@ -24,7 +46,26 @@
               </template>
             </v-alert>
 
-            <v-table v-else hover density="comfortable" class="mt-4">
+            <v-list v-else>
+              <v-list-item v-for="entity in entities" :key="entity.id.value">
+                <v-card class="mb-2">
+                  <v-card-title>Id: {{ entity.id.value }}</v-card-title>
+                  <v-card-subtitle>Group: {{ entity.groupId }}</v-card-subtitle>
+                  <v-card-actions>
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      @click="enqueueTask(entity)"
+                      :loading="enqueuingTask"
+                      :disabled="enqueuingTask"
+                    >
+                      Enqueue Task
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-list-item>
+            </v-list>
+            <!-- <v-table v-else hover density="comfortable" class="mt-4">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -49,7 +90,7 @@
                   </td>
                 </tr>
               </tbody>
-            </v-table>
+            </v-table> -->
           </v-card-text>
         </v-card>
       </v-col>
@@ -78,7 +119,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted } from 'vue'
-import { useSampleDataStore } from '@/stores/dataStore' // Adjusted casing to fix the error
+import { useDataStore } from '@/stores/dataStore'
 import { storeToRefs } from 'pinia'
 import type { DomainEntityDetails } from '@/models/types'
 
@@ -86,7 +127,7 @@ export default defineComponent({
   name: 'SampleDataEntity',
 
   setup() {
-    const store = useSampleDataStore()
+    const store = useDataStore()
     const { entities, loading, error, lastEnqueuedTask, enqueuingTask, enqueueError, hasEntities } =
       storeToRefs(store)
 
