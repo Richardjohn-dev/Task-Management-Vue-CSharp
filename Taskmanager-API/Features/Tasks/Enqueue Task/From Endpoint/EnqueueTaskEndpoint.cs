@@ -49,7 +49,6 @@ public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiRespons
             AddError(error);
 
         await SendErrorsAsync(statusCode: StatusCodes.Status400BadRequest, cancellation: ct);
-        return;
     }
 
     private static bool RequestInvalid(EnqueueTaskRequest req) => req.Details is null || SampleData.DetailsExist(req.Details) == false;

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Taskmanager.Infrastructure;
@@ -11,7 +12,6 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
     public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
     {
         _logger = logger;
-
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -27,8 +27,14 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
             Type = "https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1",
             Title = "Server error",
             Detail = exception.Message,
-            Instance = httpContext.Request.Path
+            Instance = $"{httpContext.Request.Method} {httpContext.Request.Path}"
         };
+
+        problemDetails.Extensions.TryAdd("requestId", httpContext.TraceIdentifier);
+
+        var activity = httpContext.Features.Get<IHttpActivityFeature>()?.Activity;
+        problemDetails.Extensions.TryAdd("traceId", activity?.Id);
+
 
         httpContext.Response.StatusCode = problemDetails.Status.Value;
 

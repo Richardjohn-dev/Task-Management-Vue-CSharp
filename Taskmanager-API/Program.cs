@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FastEndpoints.Swagger;
 using HangfireParallelTasks.Services.Registration;
+using Microsoft.AspNetCore.Http.Features;
 using System.Reflection;
 using Taskmanager.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
@@ -15,8 +16,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerGen();
 }
 
+app.MapGet("ExampleProblem", () =>
+{
+    return Results.Problem(type: "Bad Request",
+                    title: "Error Title",
+                    detail: "something bad happened",
+                    statusCode: StatusCodes.Status400BadRequest);
 
-//app.UseFastEndpoints();
+});
+
 app.UseFastEndpoints(x => x.Errors.UseProblemDetails());
 
 
@@ -25,18 +33,24 @@ app.UseCors("VueSPA");
 
 app.UseHttpsRedirection();
 
-//// Converts unhandled exceptions into Problem Details responses
 app.UseExceptionHandler();
 
-//// Returns the Problem Details response for (empty) non-successful responses
-//app.UseStatusCodePages();
+app.UseStatusCodePages();
+
 
 app.Run();
 
 static void RegisterServices(IServiceCollection services, IConfiguration configuration)
 {
     services.AddExceptionHandler<GlobalExceptionHandler>();
-    services.AddProblemDetails();
+
+    services.AddProblemDetails(options => options.CustomizeProblemDetails = problemContext =>
+    {
+        problemContext.ProblemDetails.Instance = $"{problemContext.HttpContext.Request.Method} {problemContext.HttpContext.Request.Path}";
+        problemContext.ProblemDetails.Extensions.TryAdd("requestId", problemContext.HttpContext.TraceIdentifier);
+        var activity = problemContext.HttpContext.Features.Get<IHttpActivityFeature>()?.Activity;
+        problemContext.ProblemDetails.Extensions.TryAdd("traceId", activity?.Id);
+    });
 
     services.AddFastEndpoints();
     services.AddSwaggerDocument();
