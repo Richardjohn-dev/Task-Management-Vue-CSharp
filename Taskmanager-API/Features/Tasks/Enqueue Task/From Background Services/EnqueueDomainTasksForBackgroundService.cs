@@ -1,5 +1,4 @@
 ﻿using Domain.Tasks.Enqueue;
-using HangfireParallelTasks.Domain.Primitives;
 using System.Globalization;
 
 namespace Databridge.BackgroundServices.Synchronization;
@@ -29,7 +28,7 @@ internal class EnqueueDomainTasksForBackgroundService
 
                 ConsoleLog(GetTimeNow());
 
-                var allTasks = SampleData.GetAll.Select(details => new DomainTaskInfo(details, TaskTriggeredBy.BackgroundService)).ToArray();
+                var allTasks = SampleData.GetAll.Select(details => TaskHelper.NewTaskFromBackgroundService(details)).ToArray();
 
                 Result tasksLoaded2 = await _queue.TryEnqueueTasksFromBackgroundService(allTasks);
 

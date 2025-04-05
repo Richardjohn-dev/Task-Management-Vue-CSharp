@@ -2,11 +2,13 @@
 using Domain.Tasks.Enqueue;
 using FastEndpoints;
 using HangfireParallelTasks.Domain.Primitives;
+using HangfireParallelTasks.Features.Tasks.Constants;
 
 public record EnqueueTaskRequest(DomainEntityDetails Details);
 
+public record TaskStatusUpdateResponse(TaskKey TaskKey, DomainTaskStatus Status);
 
-public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiResponse<TaskEnqueuedResponse>>
+public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiResponse<TaskStatusUpdateResponse>>
 {
     private readonly DomainTaskQueue _queue;
 
@@ -30,7 +32,7 @@ public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiRespons
             return;
         }
 
-        var taskToEnqueue = new DomainTaskInfo(req.Details, TaskTriggeredBy.SPA);
+        var taskToEnqueue = TaskHelper.NewTaskFromEndpoint(req.Details);
         var enqueueTaskResponse = await _queue.TryEnqueueDomainTask(taskToEnqueue);
 
         if (!enqueueTaskResponse.IsSuccess)
@@ -38,7 +40,7 @@ public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiRespons
             await SendProblemDetails(ct, enqueueTaskResponse.Errors.ToArray());
             return;
         }
-        var response = ApiResponse<TaskEnqueuedResponse>.Success(enqueueTaskResponse);
+        var response = ApiResponse<TaskStatusUpdateResponse>.Success(enqueueTaskResponse);
 
         await SendAsync(response, cancellation: ct);
     }

@@ -17,7 +17,7 @@ public class DomainTaskQueue
     private readonly SemaphoreSlim _taskQueueAccess = new SemaphoreSlim(1, 1);
 
 
-    private readonly ConcurrentDictionary<string, byte> _backgroundJobIds = new();
+    private readonly ConcurrentDictionary<TaskKey, byte> _backgroundJobIds = new();
 
     public DomainTaskQueue(string[] QueueNames)
     {
@@ -34,7 +34,7 @@ public class DomainTaskQueue
 
     // groupId / queue name
     // -- tracking what Group currently processing and in which queue
-    private readonly ConcurrentDictionary<SharedGroupIdentifier, (DomainTaskQueueName, SomeItemInfo)> _currentlyProcessingGroups = new();
+    private readonly ConcurrentDictionary<SharedGroupIdentifier, (DomainTaskQueueName, GroupItem)> _currentlyProcessingGroups = new();
 
     private readonly ConcurrentDictionary<SharedGroupIdentifier, Queue<DomainTaskInfo>> _currentlyProcessingGroupOverflow = new();
 
@@ -50,7 +50,7 @@ public class DomainTaskQueue
 
 
 
-    internal async Task<Result<TaskEnqueuedResponse>> TryEnqueueDomainTask(DomainTaskInfo task, bool NotifyEnqueued = true)
+    internal async Task<Result<TaskStatusUpdateResponse>> TryEnqueueDomainTask(DomainTaskInfo task, bool NotifyEnqueued = true)
     {
         if (!await _taskQueueAccess.WaitAsync(TimeSpan.FromSeconds(10)))
             return Result.Error("Failed getting a ticket... must be busy.");
@@ -83,11 +83,11 @@ public class DomainTaskQueue
         }
     }
 
-    private TaskEnqueuedResponse EnqueueOrCacheTask(DomainTaskInfo task, bool NotifyEnqueued = true)
+    private TaskStatusUpdateResponse EnqueueOrCacheTask(DomainTaskInfo task, bool NotifyEnqueued = true)
     {
         try
         {
-            if (CurrentlyProcessingGroup(task.Details.GroupId))
+            if (CurrentlyProcessingGroup(task.Details.Group))
             {
                 return AddToCurrentlyProcessingOverflow(task);
             }
@@ -109,9 +109,9 @@ public class DomainTaskQueue
     }
 
 
-    private TaskEnqueuedResponse AddToCurrentlyProcessingOverflow(DomainTaskInfo task)
+    private TaskStatusUpdateResponse AddToCurrentlyProcessingOverflow(DomainTaskInfo task)
     {
-        var groupId = task.Details.GroupId;
+        var groupId = task.Details.Group;
 
         _currentlyProcessingGroupOverflow.AddOrUpdate(groupId,
             id => new Queue<DomainTaskInfo>(new[] { task }), // create new 
@@ -122,14 +122,14 @@ public class DomainTaskQueue
            });
 
 
-        return TaskEnqueuedResponse.Enqueued(task);
+        return TaskHelper.Enqueued(task);
     }
 
-    private TaskEnqueuedResponse AddToQueuesFullOverflow(DomainTaskInfo task)
+    private TaskStatusUpdateResponse AddToQueuesFullOverflow(DomainTaskInfo task)
     {
-        var groupId = task.Details.GroupId;
+        var groupId = task.Details.Group;
 
-        _allQueuesBusyOverflow.AddOrUpdate(task.Details.GroupId,
+        _allQueuesBusyOverflow.AddOrUpdate(task.Details.Group,
             id => new Queue<DomainTaskInfo>(new[] { task }), // create new 
            (id, queue) => // or enqueue existing
            {
@@ -137,23 +137,23 @@ public class DomainTaskQueue
                return queue;
            });
 
-        return TaskEnqueuedResponse.Enqueued(task);
+        return TaskHelper.Enqueued(task);
 
     }
 
-    private Result<TaskEnqueuedResponse> TryEnqueueNewSynchronizationTask(DomainTaskQueueName queue, DomainTaskInfo task)
+    private Result<TaskStatusUpdateResponse> TryEnqueueNewSynchronizationTask(DomainTaskQueueName queue, DomainTaskInfo task)
     {
         try
         {
             EnqueueSynchronizationTask(queue, task);
 
             _domainTaskQueues[queue] = QueueStatus.NotAvailable;
-            _currentlyProcessingGroups.TryAdd(task.Details.GroupId, (queue, task.Details.Id));
+            _currentlyProcessingGroups.TryAdd(task.Details.Group, (queue, task.Details.Item));
 
             LogEnqueued(queue, task);
             NotifySynchronizationMappingTaskEnqueued(task);
 
-            return TaskEnqueuedResponse.Enqueued(task);
+            return TaskHelper.Enqueued(task);
         }
         catch (Exception e)
         {
@@ -167,7 +167,7 @@ public class DomainTaskQueue
     private void LogEnqueued(DomainTaskQueueName queueName, DomainTaskInfo taskInfo)
     {
         Console.WriteLine();
-        Console.WriteLine($"--> ENQUEUED #{queueName.Number} ({taskInfo.Details.GroupId.Value})");
+        Console.WriteLine($"--> ENQUEUED #{queueName.Number} ({taskInfo.Details.Group.Id})");
         Console.WriteLine();
     }
 
@@ -179,11 +179,11 @@ public class DomainTaskQueue
 
             if (taskInfo.Source == TaskTriggeredBy.BackgroundService)
             {
-                if (_backgroundJobIds.ContainsKey(taskInfo.JobId))
-                    _backgroundJobIds.TryRemove(taskInfo.JobId, out _);
+                if (_backgroundJobIds.ContainsKey(taskInfo.Details.TaskKey))
+                    _backgroundJobIds.TryRemove(taskInfo.Details.TaskKey, out _);
             }
 
-            var groupId = taskInfo.Details.GroupId;
+            var groupId = taskInfo.Details.Group;
 
             var getNextTaskResult = TryGetNextTaskForGroup(groupId);
 
@@ -317,7 +317,7 @@ public class DomainTaskQueue
         try
         {
 
-            var taskGroups = allTasks.GroupBy(x => x.Details.GroupId);
+            var taskGroups = allTasks.GroupBy(x => x.Details.Group);
 
             foreach (var taskGroup in taskGroups)
             {
@@ -376,10 +376,10 @@ public class DomainTaskQueue
         return;
     }
 
-    private TaskEnqueuedResponse[] AddRemainingTasksToCurrentlyProcessingOverflow(SharedGroupIdentifier groupId, Queue<DomainTaskInfo> taskQueue)
+    private TaskStatusUpdateResponse[] AddRemainingTasksToCurrentlyProcessingOverflow(SharedGroupIdentifier groupId, Queue<DomainTaskInfo> taskQueue)
     {
         if (taskQueue.Count == 0)
-            return Array.Empty<TaskEnqueuedResponse>();
+            return Array.Empty<TaskStatusUpdateResponse>();
 
         _currentlyProcessingGroupOverflow.AddOrUpdate(groupId,
             _ => new Queue<DomainTaskInfo>(taskQueue),
@@ -392,7 +392,7 @@ public class DomainTaskQueue
                 return existingQueue;
             });
 
-        return taskQueue.Select(TaskEnqueuedResponse.Enqueued).ToArray();
+        return taskQueue.Select(task => TaskHelper.Enqueued(task)).ToArray();
 
     }
 
@@ -401,7 +401,7 @@ public class DomainTaskQueue
     private void AddBackgroundJobIds(DomainTaskInfo[] tasksByGroupId)
     {
         var jobIds = tasksByGroupId
-           .Select(x => x.JobId);
+           .Select(x => x.Details.TaskKey);
 
         foreach (var job in jobIds)
         {
@@ -424,12 +424,12 @@ public class DomainTaskQueue
     //=> TaskCompleted?.Invoke(this, synchronizationResult);
 
     public void NotifySynchronizationMappingTaskEnqueued(DomainTaskInfo taskInfo)
-        => TaskStatusUpdate(JobStatus.Queued, taskInfo);
+        => TaskStatusUpdate(DomainTaskStatus.Enqueued, taskInfo);
 
     public void NotifySynchronizationTaskStarted(DomainTaskInfo taskInfo)
-        => TaskStatusUpdate(JobStatus.Processing, taskInfo);
+        => TaskStatusUpdate(DomainTaskStatus.Processing, taskInfo);
 
-    private void TaskStatusUpdate(JobStatus status, DomainTaskInfo taskInfo)
+    private void TaskStatusUpdate(DomainTaskStatus status, DomainTaskInfo taskInfo)
         => Console.WriteLine($"{status} : {taskInfo}");
     // Notify frontend via SignalR here..
     //=> TaskStatusChanged?.Invoke(this, new TaskEventArgs(taskInfo, status));

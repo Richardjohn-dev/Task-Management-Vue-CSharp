@@ -30,20 +30,42 @@ export interface Pagination {
 }
 
 export interface DomainEntityDetails {
-  id: SomeItemInfo
-  groupId: SharedGroupIdentifier
+  item: GroupItem
+  group: SharedGroupIdentifier
+  taskKey: TaskKey
 }
 
 // Represents a domain entity with a unique identifier and group identifier
-export interface SomeItemInfo {
-  value: string
+
+// export interface TaskEnqueuedResponse {
+//   taskId: string
+//   enqueuedAt?: string
+// }
+
+export interface GroupItems {
+  group: SharedGroupIdentifier
+  items: GroupItem[]
 }
 
+export interface GroupItem {
+  id: string
+}
 export interface SharedGroupIdentifier {
+  id: string
+}
+
+export interface TaskKey {
   value: string
 }
 
-export interface TaskEnqueuedResponse {
-  taskId: string
-  enqueuedAt?: string
+export interface TaskStatusUpdateResponse {
+  taskKey: TaskKey
+  status: TaskStatus
+}
+
+export enum TaskStatus {
+  Queued = 'Queued',
+  Processing = 'Processing',
+  Completed = 'Completed',
+  Failed = 'Failed',
 }

@@ -5,18 +5,22 @@ public record DomainTaskQueueName(string Name)
     public string Number => Name[(Name.LastIndexOf('_') + 1)..];
 };
 
-public record DomainEntityDetails(SomeItemInfo Id, SharedGroupIdentifier GroupId);
-
-public record SharedGroupIdentifier(string Value);
-public record SomeItemInfo(string Value);
 
 
+public record GroupItems(SharedGroupIdentifier Group, GroupItem[] Items);
 
-public record DomainTaskInfo(DomainEntityDetails Details, TaskTriggeredBy Source)
+public record DomainEntityDetails(GroupItem Item, SharedGroupIdentifier Group)
 {
-    public string JobId = Guid.NewGuid().ToString();
-    public string CompositeKey => $"{Details.GroupId.Value}:{Details.Id.Value}";
-}
+    public TaskKey TaskKey => new($"{Group.Id}:{Item.Id}");
+};
+
+public record SharedGroupIdentifier(string Id);
+public record GroupItem(string Id);
+
+
+
+public record DomainTaskInfo(DomainEntityDetails Details, TaskTriggeredBy Source);
+
 
 
 
@@ -25,4 +29,8 @@ public enum TaskTriggeredBy
     BackgroundService,
     SPA
 }
+
+
+public record TaskKey(string Value);
+
 

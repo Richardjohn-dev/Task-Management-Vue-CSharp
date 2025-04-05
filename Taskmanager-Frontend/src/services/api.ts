@@ -4,7 +4,7 @@ import type {
   ApiResponse,
   DomainEntityDetails,
   ProblemDetails,
-  TaskEnqueuedResponse,
+  TaskStatusUpdateResponse,
 } from '@/models/types'
 import { useGlobalStore } from '@/stores/globalStore'
 
@@ -93,9 +93,12 @@ export const api = {
   },
 
   enqueueDomainTask(details: DomainEntityDetails) {
-    return this.post<{ details: DomainEntityDetails }, TaskEnqueuedResponse>('/api/tasks/enqueue', {
-      details,
-    })
+    return this.post<{ details: DomainEntityDetails }, TaskStatusUpdateResponse>(
+      '/api/tasks/enqueue',
+      {
+        details,
+      },
+    )
   },
 
   // Example of an update operation that doesn't return data

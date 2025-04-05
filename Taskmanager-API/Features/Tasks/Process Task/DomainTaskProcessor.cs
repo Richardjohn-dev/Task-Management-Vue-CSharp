@@ -57,7 +57,7 @@ public class DomainTaskProcessor
     private void LogQueueStarted(DomainTaskQueueName queueName, DomainTaskInfo taskInfo)
     {
         Console.WriteLine();
-        Console.WriteLine($"******> PROCESSING: QUEUE#{queueName.Number} Task Started ({taskInfo.Details.GroupId.Value})");
+        Console.WriteLine($"******> PROCESSING: QUEUE#{queueName.Number} Task Started ({taskInfo.Details.Group.Id})");
         Console.WriteLine();
     }
     private async Task<Result<DomainTaskResultUI>> DoWork(DomainTaskInfo taskInfo)
