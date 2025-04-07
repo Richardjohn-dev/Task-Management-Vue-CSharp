@@ -1,4 +1,3 @@
-<!-- App.vue -->
 <template>
   <div class="app">
     <header>
@@ -10,15 +9,15 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
+import { onMounted } from 'vue'
 import SampleDataEntity from './components/SampleDataEntity.vue'
+import { useSignalRStore } from '@/stores/signalRStore'
 
-export default defineComponent({
-  name: 'App',
-  components: {
-    SampleDataEntity,
-  },
+const signalRStore = useSignalRStore()
+
+onMounted(async () => {
+  await signalRStore.initializeConnection()
 })
 </script>
 

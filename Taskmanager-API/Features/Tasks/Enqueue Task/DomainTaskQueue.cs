@@ -1,11 +1,15 @@
 ﻿using Domain.Tasks.Synchronization;
 using Hangfire;
 using HangfireParallelTasks.Features.Tasks.Constants;
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using TaskManager.SignalR;
 
 namespace Domain.Tasks.Enqueue;
 public class DomainTaskQueue
 {
+    private readonly IHubContext<TaskHub> _hubContext;
+
     public event EventHandler? BackgroundServiceTasksCompleted;
 
     public event EventHandler<TaskEventArgs>? TaskStatusChanged;
@@ -19,8 +23,9 @@ public class DomainTaskQueue
 
     private readonly ConcurrentDictionary<TaskKey, byte> _backgroundJobIds = new();
 
-    public DomainTaskQueue(string[] QueueNames)
+    public DomainTaskQueue(IHubContext<TaskHub> hubContext, string[] QueueNames)
     {
+        _hubContext = hubContext;
         _domainTaskQueues = new ConcurrentDictionary<DomainTaskQueueName, QueueStatus>(
             QueueNames.Select(QueueName => new KeyValuePair<DomainTaskQueueName, QueueStatus>(new DomainTaskQueueName(QueueName), QueueStatus.Empty))
         );
@@ -56,7 +61,7 @@ public class DomainTaskQueue
             return Result.Error("Failed getting a ticket... must be busy.");
         try
         {
-            return EnqueueOrCacheTask(task);
+            return await EnqueueOrCacheTask(task);
         }
         finally
         {
@@ -83,7 +88,7 @@ public class DomainTaskQueue
         }
     }
 
-    private TaskStatusUpdateResponse EnqueueOrCacheTask(DomainTaskInfo task, bool NotifyEnqueued = true)
+    private async Task<TaskStatusUpdateResponse> EnqueueOrCacheTask(DomainTaskInfo task, bool NotifyEnqueued = true)
     {
         try
         {
@@ -104,7 +109,7 @@ public class DomainTaskQueue
         finally
         {
             if (NotifyEnqueued)
-                NotifySynchronizationMappingTaskEnqueued(task);
+                await NotifySynchronizationMappingTaskEnqueued(task);
         }
     }
 
@@ -151,7 +156,6 @@ public class DomainTaskQueue
             _currentlyProcessingGroups.TryAdd(task.Details.Group, (queue, task.Details.Item));
 
             LogEnqueued(queue, task);
-            NotifySynchronizationMappingTaskEnqueued(task);
 
             return TaskHelper.Enqueued(task);
         }
@@ -415,25 +419,24 @@ public class DomainTaskQueue
 
 
     // Handle Task Updates as fits ..
-    public void NotifySynchronizationTaskFailed(DomainTaskInfo taskInfo, params string[] errors)
-         => Console.WriteLine($"Task Error : {errors}");
-    //=> TaskFailed?.Invoke(this, new (taskInfo, errors));
+    public Task NotifySynchronizationTaskFailed(DomainTaskInfo taskInfo, params string[] errors)
+           => SendWithSignalR(() => SendStatusUpdate(DomainTaskStatus.Failed, taskInfo));
 
-    internal void SendSynchonizationResults(DomainTaskResultUI synchronizationResult)
-          => Console.WriteLine($"Task Complete : {synchronizationResult}");
-    //=> TaskCompleted?.Invoke(this, synchronizationResult);
+    internal Task SendSynchonizationResults(DomainTaskResultUI synchronizationResult)
+           => SendWithSignalR(() => SendStatusUpdate(DomainTaskStatus.Completed, synchronizationResult.DomainTaskInfo));
 
-    public void NotifySynchronizationMappingTaskEnqueued(DomainTaskInfo taskInfo)
-        => TaskStatusUpdate(DomainTaskStatus.Enqueued, taskInfo);
+    public Task NotifySynchronizationMappingTaskEnqueued(DomainTaskInfo taskInfo)
+           => SendWithSignalR(() => SendStatusUpdate(DomainTaskStatus.Enqueued, taskInfo));
 
-    public void NotifySynchronizationTaskStarted(DomainTaskInfo taskInfo)
-        => TaskStatusUpdate(DomainTaskStatus.Processing, taskInfo);
+    public Task NotifySynchronizationTaskStarted(DomainTaskInfo taskInfo)
+         => SendWithSignalR(() => SendStatusUpdate(DomainTaskStatus.Processing, taskInfo));
 
-    private void TaskStatusUpdate(DomainTaskStatus status, DomainTaskInfo taskInfo)
-        => Console.WriteLine($"{status} : {taskInfo}");
-    // Notify frontend via SignalR here..
-    //=> TaskStatusChanged?.Invoke(this, new TaskEventArgs(taskInfo, status));
 
+    public Task SendStatusUpdate(DomainTaskStatus newStatus, DomainTaskInfo taskInfo)
+    {
+        TaskStatusUpdateResponse update = new(taskInfo.Details.TaskKey, newStatus);
+        return _hubContext.Clients.All.SendAsync(SignalRTaskApi.TaskStatusUpdate, update);
+    }
 
 
     internal async Task<bool> GroupIsCurrentlyProcessing(SharedGroupIdentifier groupId)
@@ -475,5 +478,48 @@ public class DomainTaskQueue
     }
 
 
+
+    // SignalR Messaging
+
+    private async Task SendWithSignalR(Func<Task> notification)
+    {
+        var activeClients = TaskHub.ActiveConnections;
+
+        if (activeClients.Any())
+        {
+            await notification();
+        }
+    }
+
+    internal async Task<TaskStatusUpdateResponse[]> GetTaskStatusesAsync(List<string> taskKeys)
+    {
+        // if keys dont exist, assume its complete? what if had a problem..
+        if (!await _taskQueueAccess.WaitAsync(TimeSpan.FromSeconds(10)))
+            return taskKeys.Select(x => new TaskStatusUpdateResponse(new TaskKey(x), DomainTaskStatus.Completed)).ToArray();
+
+        try
+        {
+            return taskKeys.Select(x => new TaskStatusUpdateResponse(new TaskKey(x), DomainTaskStatus.Completed)).ToArray();
+
+            // todo - convert taskKeys to DomainEntityDetails, or maybe change the params.
+
+            // get tasks etc.
+
+        }
+        finally
+        {
+            _taskQueueAccess.Release();
+        }
+
+
+    }
 }
 
+public record TaskStatusUpdateResponse(TaskKey TaskKey, DomainTaskStatus Status);
+
+public static class SignalRTaskApi
+{
+    public const string TaskStatusUpdate = "TASK_STATUS_UPDATE";
+    public const string TaskStatusUpdates = "TASK_STATUS_UPDATES";
+
+}

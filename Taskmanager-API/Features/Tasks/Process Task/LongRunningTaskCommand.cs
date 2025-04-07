@@ -10,7 +10,7 @@ public class LongRunningTaskCommandHandler : IRequestHandler<LongRunningTaskComm
     // Example long running task
     public async Task<Result<DomainTaskResult>> Handle(LongRunningTaskCommand request, CancellationToken cancellationToken)
     {
-        await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
         return new DomainTaskResult(true);
     }
 }

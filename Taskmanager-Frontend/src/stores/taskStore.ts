@@ -1,6 +1,8 @@
 // stores/taskStore.ts
 import { defineStore } from 'pinia'
 import { api } from '@/services/api'
+import { signalRService } from '@/services/signalRService'
+
 import type { TaskStatus, TaskStatusUpdateResponse, DomainEntityDetails } from '@/models/types'
 
 interface TasksState {
@@ -23,6 +25,9 @@ export const useTaskStore = defineStore('tasks', {
 
     hasTask: (state) => (taskKey: string) => {
       return taskKey in state.taskStatuses
+    },
+    getActiveTaskKeys: (state) => {
+      return Object.keys(state.taskStatuses)
     },
   },
 
@@ -57,6 +62,25 @@ export const useTaskStore = defineStore('tasks', {
         return false
       } finally {
         this.enqueuingTask = false
+      }
+    },
+
+    // Add this method to fetch and update all task statuses
+    async fetchLatestTaskStatuses() {
+      if (signalRService.isConnected()) {
+        await signalRService.fetchLatestTaskStatuses()
+      } else {
+        try {
+          // Fallback to REST API if SignalR is not connected
+          const taskKeys = Object.keys(this.taskStatuses)
+          if (taskKeys.length > 0) {
+            // todo - fall back to endpoint, make this endpoint in backend also.
+            // const responses = await api.getTaskStatuses(taskKeys)
+            // this.updateTaskStatuses(responses)
+          }
+        } catch (err) {
+          console.error('Failed to fetch task statuses:', err)
+        }
       }
     },
   },

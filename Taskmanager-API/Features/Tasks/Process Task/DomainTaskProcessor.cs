@@ -27,13 +27,13 @@ public class DomainTaskProcessor
         try
         {
             var result = await DoWork(taskInfo);
-            NotifyTaskResults(result, taskInfo);
+            await NotifyTaskResults(result, taskInfo);
 
         }
         catch (Exception ex)
         {
             if (TriggeredFromUI(taskInfo))
-                NotifyFailedTask(taskInfo, ex.Message);
+                await NotifyFailedTask(taskInfo, ex.Message);
         }
         finally
         {
@@ -41,16 +41,16 @@ public class DomainTaskProcessor
         }
     }
 
-    private void NotifyTaskResults(Result<DomainTaskResultUI> result, DomainTaskInfo taskInfo)
+    private async Task NotifyTaskResults(Result<DomainTaskResultUI> result, DomainTaskInfo taskInfo)
     {
         if (IsFailed(result))
-            NotifyFailedTask(taskInfo, result.Errors.ToArray());
+            await NotifyFailedTask(taskInfo, result.Errors.ToArray());
 
-        _queueService.SendSynchonizationResults(result);
+        await _queueService.SendSynchonizationResults(result);
     }
 
-    private void NotifyFailedTask(DomainTaskInfo taskInfo, params string[] errors)
-     => _queueService.NotifySynchronizationTaskFailed(taskInfo, errors);
+    private async Task NotifyFailedTask(DomainTaskInfo taskInfo, params string[] errors)
+     => await _queueService.NotifySynchronizationTaskFailed(taskInfo, errors);
 
 
 
@@ -62,7 +62,9 @@ public class DomainTaskProcessor
     }
     private async Task<Result<DomainTaskResultUI>> DoWork(DomainTaskInfo taskInfo)
     {
-        _queueService.NotifySynchronizationTaskStarted(taskInfo); // notify frontend
+
+        await _queueService.NotifySynchronizationTaskStarted(taskInfo); // notify frontend
+
 
         Stopwatch taskTimer = new();
         taskTimer.Start();
@@ -72,7 +74,7 @@ public class DomainTaskProcessor
 
         taskTimer.Stop();
 
-        return taskResult.IsSuccess ? new DomainTaskResultUI(taskResult.Value)
+        return taskResult.IsSuccess ? new DomainTaskResultUI(taskResult.Value, taskInfo)
                    : Result.Error(taskResult.Errors.ToArray());
 
     }

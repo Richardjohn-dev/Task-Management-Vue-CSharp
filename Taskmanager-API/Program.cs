@@ -4,6 +4,7 @@ using HangfireParallelTasks.Services.Registration;
 using Microsoft.AspNetCore.Http.Features;
 using System.Reflection;
 using Taskmanager.Infrastructure;
+using TaskManager.SignalR;
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -16,14 +17,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerGen();
 }
 
-app.MapGet("ExampleProblem", () =>
-{
-    return Results.Problem(type: "Bad Request",
-                    title: "Error Title",
-                    detail: "something bad happened",
-                    statusCode: StatusCodes.Status400BadRequest);
 
-});
 
 app.UseFastEndpoints(x => x.Errors.UseProblemDetails());
 
@@ -37,11 +31,17 @@ app.UseExceptionHandler();
 
 app.UseStatusCodePages();
 
+app.MapHub<TaskHub>("/taskHub");
+
 
 app.Run();
 
 static void RegisterServices(IServiceCollection services, IConfiguration configuration)
 {
+
+    services.AddSignalR();
+
+
     services.AddExceptionHandler<GlobalExceptionHandler>();
 
     services.AddProblemDetails(options => options.CustomizeProblemDetails = problemContext =>
@@ -59,6 +59,7 @@ static void RegisterServices(IServiceCollection services, IConfiguration configu
     services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
     services.ConfigureSPACors(configuration);
+
     services.RegisterTaskManager(configuration);
 
 }

@@ -3,6 +3,8 @@ using Domain.Tasks.Enqueue;
 using Domain.Tasks.Synchronization;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Microsoft.AspNetCore.SignalR;
+using TaskManager.SignalR;
 
 namespace HangfireParallelTasks.Services.Registration;
 
@@ -24,6 +26,7 @@ public static class ServicesRegistration
     }
     public static IServiceCollection RegisterTaskManager(this IServiceCollection services, IConfiguration configuration)
     {
+
         services.AddHangfire((sp, config) =>
         {
             config.UseSimpleAssemblyNameTypeSerializer()
@@ -32,10 +35,10 @@ public static class ServicesRegistration
 
         });
 
-        var queueCount = configuration.GetValue<int>("Hangfire:ParallelQueueCount", 3);
+        var parallelTasksQueueCount = configuration.GetValue<int>("Hangfire:ParallelQueueCount", 3);
 
 
-        var synchronizationQueueNames = Enumerable.Range(1, queueCount)
+        var synchronizationQueueNames = Enumerable.Range(1, parallelTasksQueueCount)
                                     .Select(i => $"parallel_task_queue_{i}").ToArray();
 
 
@@ -54,7 +57,11 @@ public static class ServicesRegistration
 
 
 
-        services.AddSingleton(sp => new DomainTaskQueue(synchronizationQueueNames)); // queue names registered in queue.
+        services.AddSingleton(x =>
+            new DomainTaskQueue(
+                x.GetRequiredService<IHubContext<TaskHub>>(),
+                synchronizationQueueNames));        // register queuenames.
+
         services.AddScoped<DomainTaskProcessor>();
 
         services.AddHostedService<EnqueueDomainTasksBackgroundService>();

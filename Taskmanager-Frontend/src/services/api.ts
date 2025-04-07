@@ -7,15 +7,11 @@ import type {
   TaskStatusUpdateResponse,
 } from '@/models/types'
 import { useGlobalStore } from '@/stores/globalStore'
-
-const baseURL =
-  import.meta.env.MODE === 'production'
-    ? import.meta.env.VITE_PROD_API || `https://api-${window.location.hostname}/`
-    : import.meta.env.VITE_DEV_API || 'https://localhost:7059/'
+import { getBaseUrl } from '@/utils/baseUrl'
 
 // Create an axios instance with base configuration
 const apiClient = axios.create({
-  baseURL,
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },

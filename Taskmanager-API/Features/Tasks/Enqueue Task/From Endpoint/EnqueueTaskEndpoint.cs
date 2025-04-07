@@ -2,11 +2,9 @@
 using Domain.Tasks.Enqueue;
 using FastEndpoints;
 using HangfireParallelTasks.Domain.Primitives;
-using HangfireParallelTasks.Features.Tasks.Constants;
 
 public record EnqueueTaskRequest(DomainEntityDetails Details);
 
-public record TaskStatusUpdateResponse(TaskKey TaskKey, DomainTaskStatus Status);
 
 public class EnqueueDomainTaskEndpoint : Endpoint<EnqueueTaskRequest, ApiResponse<TaskStatusUpdateResponse>>
 {
