@@ -25,9 +25,9 @@
               </template>
             </v-alert>
 
-            <v-list v-else>
-              <TaskInfo v-for="entity in entities" :key="entity.item.id" :entity="entity" />
-            </v-list>
+            <v-row v-for="groupData in groupedEntities" :key="groupData.group.id" cols="12" v-else>
+              <EntityGroup :groupData="groupData" />
+            </v-row>
           </v-card-text>
         </v-card>
       </v-col>
@@ -35,37 +35,43 @@
   </v-container>
 </template>
 
-<script lang="ts">
-import { defineComponent, onMounted } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useDataStore } from '@/stores/dataStore'
 import { storeToRefs } from 'pinia'
-import TaskInfo from './TaskInfo.vue'
+import EntityGroup from './EntityGroup.vue'
+import type { GroupItemDisplay } from '@/models/types'
 
-export default defineComponent({
-  name: 'SampleDataEntity',
-  components: {
-    TaskInfo, // Register the TaskInfo component here
-  },
+const store = useDataStore()
+const { entities, loading, error, hasEntities } = storeToRefs(store)
 
-  setup() {
-    const store = useDataStore()
-    const { entities, loading, error, hasEntities } = storeToRefs(store)
+const groupedEntities = computed<GroupItemDisplay[]>(() => {
+  // Create a map to store entities by group ID
+  const groupMap = new Map<string, GroupItemDisplay>()
 
-    const fetchData = () => {
-      store.fetchSampleData()
+  // Populate the map
+  entities.value.forEach((entity) => {
+    const groupId = entity.group.id
+
+    if (!groupMap.has(groupId)) {
+      groupMap.set(groupId, {
+        group: entity.group,
+        entities: [],
+      })
     }
 
-    onMounted(() => {
-      fetchData()
-    })
+    groupMap.get(groupId)?.entities.push(entity)
+  })
 
-    return {
-      entities,
-      loading,
-      error,
-      hasEntities,
-      fetchData,
-    }
-  },
+  // Convert map to array
+  return Array.from(groupMap.values())
+})
+
+const fetchData = () => {
+  store.fetchSampleData()
+}
+
+onMounted(() => {
+  fetchData()
 })
 </script>

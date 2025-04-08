@@ -67,21 +67,18 @@ export const api = {
     const response = await apiClient.get<ApiResponse<T>>(endpoint)
     return response.data.payload as T
   },
-
   async post<TRequest, TResponse>(endpoint: string, data: TRequest): Promise<TResponse> {
     const response = await apiClient.post<ApiResponse<TResponse>>(endpoint, data)
     return response.data.payload as TResponse
   },
 
-  // Method for operations that don't return meaningful data
+  // no response from Api
   async update<TRequest>(endpoint: string, data: TRequest): Promise<void> {
     await apiClient.put<ApiResponse<EmptyResponse>>(endpoint, data)
-    // No return value needed - just resolves if successful, rejects if error
   },
 
   async delete(endpoint: string): Promise<void> {
     await apiClient.delete<ApiResponse<EmptyResponse>>(endpoint)
-    // No return value needed - just resolves if successful, rejects if error
   },
 
   getSampleData() {
@@ -97,7 +94,6 @@ export const api = {
     )
   },
 
-  // Example of an update operation that doesn't return data
   updateEntity(id: string, updatedData: Partial<DomainEntityDetails>) {
     return this.update(`/api/entities/${id}`, updatedData)
   },

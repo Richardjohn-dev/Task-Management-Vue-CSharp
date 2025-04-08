@@ -27,10 +27,7 @@ public class TaskHub : Hub
 
     public async Task GetLatestTaskStatuses(List<string> taskKeys)
     {
-        // Get the latest statuses for the provided task keys
         var taskStatuses = await _taskQueue.GetTaskStatusesAsync(taskKeys);
-
-        // Send the results back to the calling client only
         await Clients.Caller.SendAsync(SignalRTaskApi.TaskStatusUpdates, taskStatuses);
     }
 

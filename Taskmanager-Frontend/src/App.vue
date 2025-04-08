@@ -17,6 +17,7 @@ import { useSignalRStore } from '@/stores/signalRStore'
 const signalRStore = useSignalRStore()
 
 onMounted(async () => {
+  console.log('App.vue Initializing SignalR connection...')
   await signalRStore.initializeConnection()
 })
 </script>

@@ -53,6 +53,7 @@ const connectionStatusText = computed(() => {
 })
 
 const reconnect = async () => {
+  console.log('Reconnecting from Status...')
   await signalRStore.initializeConnection()
 }
 </script>

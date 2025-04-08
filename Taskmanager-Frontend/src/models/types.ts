@@ -69,3 +69,8 @@ export enum TaskStatus {
   Completed = 'Completed',
   Failed = 'Failed',
 }
+
+export interface GroupItemDisplay {
+  group: SharedGroupIdentifier
+  entities: DomainEntityDetails[]
+}

@@ -2,7 +2,6 @@
 import { defineStore } from 'pinia'
 import { api } from '@/services/api'
 import type { DomainEntityDetails } from '@/models/types'
-// import { useTaskStore } from './taskStore'
 
 interface SampleDataState {
   entities: DomainEntityDetails[]
