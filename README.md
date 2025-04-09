@@ -82,7 +82,7 @@ This project implements a **custom queueing system** layered on top of Hangfire:
 
 This architecture enables **parallel processing across groups** while maintaining **strict ordering within groups**, achieving optimal performance with data integrity guarantees.
 
-## 🧭 System Architecture
+## 🧭 Task Management Flow
 
 ### 1. Enqueue Flow
 Shows how tasks are routed into queues depending on whether a group is already being processed.
