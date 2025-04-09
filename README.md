@@ -6,6 +6,12 @@ A sample project demonstrating advanced queue management with **parallel ordered
 
 This project showcases full-stack development capabilities through the implementation of a sophisticated task orchestration system. It demonstrates expertise in both frontend architecture and backend distributed systems design.
 
+
+## 📋 Project Background
+
+This implementation was inspired by a real-world challenge I solved at a previous employer, where we needed to synchronize data across multiple systems while preventing race conditions. The production solution eventually expanded to include multiple specialized queue types with a master orchestration layer. This repository demonstrates the core pattern that formed the foundation of that larger system.
+
+
 ## 🧰 Tech Stack
 
 ### Frontend
